@@ -1,0 +1,30 @@
+import sensor
+import image
+import lcd
+import time
+import utime
+from machine import UART
+from fpioa_manager import fm
+
+fm.register(10, fm.fpioa.UART1_TX, force=True)#映射串口引脚
+fm.register(9, fm.fpioa.UART1_RX, force=True)#映射串口引脚
+
+uart = UART(UART.UART1, 115200, 8, 1, 0, timeout=1000, read_buf_len=4096)
+clock = time.clock()
+lcd.init()
+sensor.reset()
+sensor.set_pixformat(sensor.RGB565)
+sensor.set_framesize(sensor.QVGA)
+sensor.run(1)
+sensor.skip_frames(30)#跳过刚启动开始的30帧照片
+lcd.rotation(2)#LCD屏幕翻转，范围是0~3
+sensor.set_hmirror(True)#摄像头镜像
+
+while True:
+    img = sensor.snapshot()#从摄像头获取一张图片
+    read_data = uart.read(5)
+    if read_data is not None:
+        read_data = read_data.decode('utf-8')
+    if uart.read()!=None:
+        img.draw_string(2,2, ("temp=%s" %(read_data)), color=(0, 176, 80), scale=2)
+    lcd.display(img)
